@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أكاديمية التميز - منشئ الأسئلة الذكي</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF.js Library for PDF Text Extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom Styling -->
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Header Section -->
+    <header class="glass-panel sticky top-0 z-50 py-4 px-6 shadow-lg mb-8">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-graduation-cap text-indigo-400 text-3xl"></i>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+                    أكاديمية التميز
+                </h1>
+            </div>
+            <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full">
+                توليد أسئلة مدعوم بالذكاء الاصطناعي
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto px-4 w-full flex-grow">
+        
+        <div class="glass-panel rounded-2xl p-6 md:p-8 shadow-2xl mb-8">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-6">
+                <h2 class="text-xl font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-cyan-400"></i>
+                    إنشاء أسئلة بالذكاء الاصطناعي (Gemini)
+                </h2>
+                
+                <!-- Import PDF Button -->
+                <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 hover:border-cyan-400 px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>استيراد من PDF</span>
+                    <input type="file" id="pdfInput" accept="application/pdf" class="hidden" onchange="handlePdfUpload(event)">
+                </label>
+            </div>
+
+            <!-- PDF Processing Alert / Status -->
+            <div id="pdfStatus" class="hidden mb-4 p-3 rounded-xl text-sm flex items-center justify-between"></div>
+
+            <!-- Prompt & Extracted Text Input Area -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-slate-300 mb-2">
+                    البرومبت / وصف موضوع الأسئلة أو النص المستخرج:
+                </label>
+                <textarea id="promptInput" rows="5" 
+                    class="w-full bg-slate-900/90 border border-slate-700 rounded-xl p-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all text-sm"
+                    placeholder="اكتب الموضوع المطلوب (مثال: أركان الإسلام، قواعد النحو للصف الخامس...) أو قم بستيراد نص من ملف PDF عبر الزر أعلاه..."></textarea>
+            </div>
+
+            <!-- Question Counts Selector -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-slate-300 mb-3">
+                    تحديد عدد الأسئلة المطلوب توليدها من كل نوع:
+                </label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50 text-center">
+                        <span class="block text-xs text-slate-400 mb-1">اختيار من متعدد</span>
+                        <input type="number" id="mcqCount" min="0" max="10" value="2" 
+                            class="w-full bg-slate-900 border border-slate-700 text-center py-1 rounded-lg text-indigo-400 font-bold focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700/50 text-center">
+                        <span class="block text-xs text-slate-400 mb-1">صح أو خطأ</span>
+                        <input type="number" id="tfCount" min="0" max="10" value="1" 
+                            class="w-full bg-slate-900 border border-slate-700 text-center py-1 rounded-lg text-cyan-400 font-bold focus:outline-none focus:border-cyan-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button id="generateBtn" onclick="generateQuestions()" 
+                class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>توليد الأسئلة الآن</span>
+            </button>
+        </div>
+
+        <!-- Generated Questions Display Section -->
+        <div id="resultsSection" class="hidden glass-panel rounded-2xl p-6 md:p-8 shadow-2xl mb-12">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-6">
+                <h3 class="text-lg font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-emerald-400"></i>
+                    الأسئلة المُنشأة (<span id="questionsCount">0</span>):
+                </h3>
+                <button onclick="clearQuestions()" class="text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">
+                    <i class="fa-solid fa-trash"></i> مسح الكل
+                </button>
+            </div>
+
+            <!-- List Container -->
+            <div id="questionsContainer" class="space-y-4"></div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-slate-500 text-xs border-t border-slate-800/60">
+        جميع الحقوق محفوظة &copy; أكاديمية التميز 2026
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        let extractedPdfText = "";
+
+        // PDF Text Extraction Function
+        async function handlePdfUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const statusDiv = document.getElementById('pdfStatus');
+            statusDiv.className = "mb-4 p-3 rounded-xl text-sm flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300";
+            statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري قراءة وتفريغ النص من ملف PDF (${file.name})...`;
+            statusDiv.classList.remove('hidden');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = "";
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const tokenized = await page.getTextContent();
+                    const pageText = tokenized.items.map(item => item.str).join(' ');
+                    fullText += pageText + "\n";
+                }
+
+                extractedPdfText = fullText.trim();
+                
+                if (extractedPdfText.length === 0) {
+                    throw new Error("لم يتم العثور على نصوص قابلة للقراءة في هذا الملف (قد يكون صورة أو مستنداً ممسوحاً ضوئياً).");
+                }
+
+                document.getElementById('promptInput').value = extractedPdfText;
+                
+                statusDiv.className = "mb-4 p-3 rounded-xl text-sm flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300";
+                statusDiv.innerHTML = `<i class="fa-solid fa-circle-check"></i> تم استخراج النص بنجاح (${extractedPdfText.length} حرف). يمكنك الآن إعطاء أمر التوليد.`;
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.className = "mb-4 p-3 rounded-xl text-sm flex items-center gap-2 bg-rose-500/20 border border-rose-500/30 text-rose-300";
+                statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> خطأ في قراءة ملف PDF: ${error.message}`;
+            }
+        }
+
+        // Generate Questions via Netlify Function API
+        async function generateQuestions() {
+            const promptInput = document.getElementById('promptInput').value.trim();
+            const mcqCount = parseInt(document.getElementById('mcqCount').value) || 0;
+            const tfCount = parseInt(document.getElementById('tfCount').value) || 0;
+            const generateBtn = document.getElementById('generateBtn');
+
+            if (!promptInput) {
+                alert('يرجى إدخال نص/موضوع أو استيراد ملف PDF قبل البدء في التوليد.');
+                return;
+            }
+
+            // UI Loading state
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري التوليد بواسطة Gemini...`;
+
+            try {
+                const response = await fetch('/.netlify/functions/generate-questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: promptInput,
+                        rawText: extractedPdfText ? promptInput : '',
+                        counts: { MCQ: mcqCount, TF: tfCount }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'حدث خطأ غير متوقع أثناء الاتصال بالخادم');
+                }
+
+                if (data.questions && Array.isArray(data.questions)) {
+                    renderQuestions(data.questions);
+                } else {
+                    throw new Error('لم يتم استرجاع صيغة أسئلة سليمة من الذكاء الاصطناعي.');
+                }
+
+            } catch (error) {
+                console.error('Error generating questions:', error);
+                alert(`خطأ في الاتصال بالخادم أو مفتاح API: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>توليد الأسئلة الآن</span>`;
+            }
+        }
+
+        // Render Generated Questions in Container
+        function renderQuestions(questions) {
+            const resultsSection = document.getElementById('resultsSection');
+            const questionsContainer = document.getElementById('questionsContainer');
+            const questionsCount = document.getElementById('questionsCount');
+
+            questionsContainer.innerHTML = '';
+            questionsCount.innerText = questions.length;
+
+            questions.forEach((q, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 shadow-sm";
+
+                let content = `<div class="text-sm font-semibold text-slate-200 mb-2">${idx + 1}. ${q.textAr}</div>`;
+
+                if (q.type === 'MCQ' && q.optionsAr) {
+                    content += `<div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">`;
+                    q.optionsAr.forEach((opt, oIdx) => {
+                        const isCorrect = oIdx === q.correctOptionIndex;
+                        content += `
+                            <div class="text-xs p-2.5 rounded-lg border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 font-medium' : 'bg-slate-900/60 border-slate-700/60 text-slate-400'}">
+                                ${String.fromCharCode(65 + oIdx)}) ${opt} ${isCorrect ? '✓ (الإجابة الصحيحة)' : ''}
+                            </div>
+                        `;
+                    });
+                    content += `</div>`;
+                } else if (q.type === 'TF') {
+                    content += `
+                        <div class="mt-2 inline-block text-xs px-3 py-1.5 rounded-lg border bg-cyan-500/10 border-cyan-500/30 text-cyan-300">
+                            الإجابة الصحيحة: ${q.trueFalseAnswer ? 'صواب (✓)' : 'خطأ (✗)'}
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = content;
+                questionsContainer.appendChild(card);
+            });
+
+            resultsSection.classList.remove('hidden');
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function clearQuestions() {
+            document.getElementById('questionsContainer').innerHTML = '';
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
