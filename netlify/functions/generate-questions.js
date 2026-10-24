@@ -65,11 +65,15 @@ exports.handler = async (event, context) => {
 `;
         }
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        // استخدام التنسيق المحدث للاتصال بـ Gemini مع دعم التوكن الشخصي عبر ترويسة المصادقة
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent`;
 
         const apiResponse = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: systemInstruction }] }]
             })
@@ -105,4 +109,3 @@ exports.handler = async (event, context) => {
         };
     }
 };
-
