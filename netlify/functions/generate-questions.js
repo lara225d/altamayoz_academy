@@ -7,15 +7,13 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        let apiKey = process.env.GEMINI_API_KEY || '';
-        
-        // تنقية المفتاح من أي مسافات أو رموز مخفية
+        let apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
         apiKey = apiKey.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 
         if (!apiKey) {
             return { 
                 statusCode: 500, 
-                body: JSON.stringify({ error: 'مفتاح GEMINI_API_KEY غير معرف في إعدادات Netlify' }) 
+                body: JSON.stringify({ error: 'مفتاح API غير معرف في إعدادات Netlify' }) 
             };
         }
 
@@ -69,34 +67,30 @@ exports.handler = async (event, context) => {
 `;
         }
 
-        // تحديد رابط الطلب ونوع الترويسة حسب نوع المفتاح تلقائياً
-        let apiUrl = '';
-        const headers = { 'Content-Type': 'application/json' };
-
-        if (apiKey.startsWith('AQ')) {
-            // للتوكنات الحديثة AQ...
-            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
-            headers['Authorization'] = `Bearer ${apiKey}`;
-        } else {
-            // للمفاتيح التقليدية AIza...
-            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        }
-
-        const apiResponse = await fetch(apiUrl, {
+        // الاتصال المباشر بـ ChatGPT عبر OpenAI API
+        const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
-            headers: headers,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: systemInstruction }] }]
+                model: 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: 'قم بتوليد الأسئلة المطلوبة الآن بناءً على التعليمات.' }
+                ],
+                temperature: 0.7
             })
         });
 
         const apiData = await apiResponse.json();
 
         if (!apiResponse.ok) {
-            throw new Error(apiData.error?.message || 'خطأ في الاستجابة من Gemini API');
+            throw new Error(apiData.error?.message || 'خطأ في الاستجابة من OpenAI API');
         }
 
-        const responseText = apiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const responseText = apiData.choices?.[0]?.message?.content || '';
         const jsonMatch = responseText.match(/\[[\s\S]*\]/);
 
         if (!jsonMatch) {
@@ -112,7 +106,7 @@ exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        console.error('Gemini Function Error:', error);
+        console.error('OpenAI Function Error:', error);
         return {
             statusCode: 500,
             headers: { 'Content-Type': 'application/json' },
