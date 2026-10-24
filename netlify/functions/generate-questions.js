@@ -9,7 +9,7 @@ exports.handler = async (event, context) => {
     try {
         let apiKey = process.env.GEMINI_API_KEY || '';
         
-        // تنظيف المفتاح تلقائياً من الرموز المخفية (مثل 8203) والمسافات
+        // تنقية المفتاح من أي مسافات أو رموز مخفية
         apiKey = apiKey.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 
         if (!apiKey) {
@@ -69,14 +69,17 @@ exports.handler = async (event, context) => {
 `;
         }
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent`;
-
-        // إرسال الطلب مع تنظيف الترويسة
+        // تحديد رابط الطلب ونوع الترويسة حسب نوع المفتاح تلقائياً
+        let apiUrl = '';
         const headers = { 'Content-Type': 'application/json' };
+
         if (apiKey.startsWith('AQ')) {
+            // للتوكنات الحديثة AQ...
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
             headers['Authorization'] = `Bearer ${apiKey}`;
         } else {
-            headers['x-goog-api-key'] = apiKey;
+            // للمفاتيح التقليدية AIza...
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         }
 
         const apiResponse = await fetch(apiUrl, {
