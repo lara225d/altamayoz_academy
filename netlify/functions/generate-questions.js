@@ -7,7 +7,11 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        const apiKey = process.env.GEMINI_API_KEY;
+        let apiKey = process.env.GEMINI_API_KEY || '';
+        
+        // تنظيف المفتاح تلقائياً من الرموز المخفية (مثل 8203) والمسافات
+        apiKey = apiKey.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+
         if (!apiKey) {
             return { 
                 statusCode: 500, 
@@ -65,15 +69,19 @@ exports.handler = async (event, context) => {
 `;
         }
 
-        // استخدام التنسيق المحدث للاتصال بـ Gemini مع دعم التوكن الشخصي عبر ترويسة المصادقة
         const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent`;
+
+        // إرسال الطلب مع تنظيف الترويسة
+        const headers = { 'Content-Type': 'application/json' };
+        if (apiKey.startsWith('AQ')) {
+            headers['Authorization'] = `Bearer ${apiKey}`;
+        } else {
+            headers['x-goog-api-key'] = apiKey;
+        }
 
         const apiResponse = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
+            headers: headers,
             body: JSON.stringify({
                 contents: [{ parts: [{ text: systemInstruction }] }]
             })
